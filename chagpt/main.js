@@ -179,11 +179,34 @@ for (let i = 0; i < 1500; i++) {
   scene.add(starMesh);
 }
 
+
+//-----------------------Messing with spaceship types---------------------------
+
+import { createSpaceship } from './javascript/spaceShipModules';
+
+let currentSpaceship = createSpaceship(1); // Initialize with spaceship type 1
+
+// Add the starting spaceship mesh to the scene
+scene.add(currentSpaceship);
+
+// Event listener for keyboard key presses
+document.addEventListener('keydown', (event) => {
+  if (event.key === '1' ||event.key === '2' || event.key === '3') {
+    scene.remove(currentSpaceship); // Remove the existing spaceship
+
+    const spaceshipType = parseInt(event.key);
+    currentSpaceship = createSpaceship(spaceshipType);
+    scene.add(currentSpaceship); // Add the new spaceship mesh to the scene
+  }
+});
+
 // Create a spaceship mesh
-const spaceshipGeometry = new THREE.BoxGeometry(1, 5, 1);
-const spaceshipMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-const spaceship = new THREE.Mesh(spaceshipGeometry, spaceshipMaterial);
-scene.add(spaceship);
+//const spaceshipGeometry = new THREE.BoxGeometry(1, 5, 1);
+//const spaceshipMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+//const spaceship = new THREE.Mesh(spaceshipGeometry, spaceshipMaterial);
+//scene.add(spaceship);
+
+//end of changes
 
 // Set up the camera position
 camera.position.z = 5;
@@ -201,29 +224,29 @@ document.addEventListener('keyup', (event) => {
 // Handle user input for spaceship movement
 function handleSpaceshipMovement() {
   if (keyboard['KeyW']) {
-    spaceship.position.z -= 0.1;
+    currentSpaceship.position.z -= 0.1;
   }
   if (keyboard['KeyA']) {
-    spaceship.position.x -= 0.1;
+    currentSpaceship.position.x -= 0.1;
   }
   if (keyboard['KeyS']) {
-    spaceship.position.z += 0.1;
+    currentSpaceship.position.z += 0.1;
   }
   if (keyboard['KeyD']) {
-    spaceship.position.x += 0.1;
+    currentSpaceship.position.x += 0.1;
   }
   if (keyboard['KeyI']) {
-    spaceship.position.y += 0.1;
+    currentSpaceship.position.y += 0.1;
     camera.position.y += 0.1;
   }
   if (keyboard['KeyJ']) {
-    spaceship.position.y -= 0.1;
+    currentSpaceship.position.y -= 0.1;
     camera.position.y -= 0.1;
   }
 
   // Move the camera to follow the spaceship
   const cameraOffset = new THREE.Vector3(0, 2, 5);
-  const spaceshipGlobalPosition = spaceship.localToWorld(new THREE.Vector3(0, 0, 0));
+  const spaceshipGlobalPosition = currentSpaceship.localToWorld(new THREE.Vector3(0, 0, 0));
   const cameraPosition = spaceshipGlobalPosition.clone().add(cameraOffset);
   camera.position.copy(cameraPosition);
   camera.lookAt(spaceshipGlobalPosition);
@@ -240,7 +263,7 @@ function handleSpaceshipHovering() {
     hoverAmplitude * Math.sin(hoverFrequency * time),
     0
   );
-  spaceship.position.add(hoverPositionOffset);
+  currentSpaceship.position.add(hoverPositionOffset);
 }
 //set up f for full screen:
 document.addEventListener('keydown', event => {
