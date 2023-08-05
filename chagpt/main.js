@@ -200,6 +200,9 @@ document.addEventListener('keydown', (event) => {
     const spaceshipType = parseInt(event.key);
     currentSpaceship = createSpaceship(spaceshipType);
     scene.add(currentSpaceship); // Add the new spaceship mesh to the scene
+    currentSpaceship.position.y = currentUserY;
+    currentSpaceship.position.x = currentUserX;
+    currentSpaceship.position.z = currentUserZ;
   }
 });
 
