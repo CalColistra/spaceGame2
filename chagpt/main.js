@@ -70,7 +70,7 @@ for (let i = 0; i < 1500; i++) {
 
 
 // Create a spaceship mesh
-const spaceshipGeometry = new THREE.BoxGeometry(1, 1, 1);
+const spaceshipGeometry = new THREE.BoxGeometry(1, 5, 1);
 const spaceshipMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
 const spaceship = new THREE.Mesh(spaceshipGeometry, spaceshipMaterial);
 scene.add(spaceship);
