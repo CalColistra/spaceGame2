@@ -1,6 +1,26 @@
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCebrgrJNANRhUIh_2IPBgfoSHP3242srI",
+  authDomain: "spacegame2.firebaseapp.com",
+  projectId: "spacegame2",
+  storageBucket: "spacegame2.appspot.com",
+  messagingSenderId: "513671448778",
+  appId: "1:513671448778:web:792628f6f526016a3acc33"
+};
+
 // Import the necessary Three.js modules
 import * as THREE from 'three';
+//hi
 
+
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
 // Create a scene, camera, and renderer
 const scene = new THREE.Scene();
@@ -26,6 +46,7 @@ renderer.setClearColor(0x000000);
 
 // Create a sphere geometry for the stars
 const starGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+
 
 // Create 150 randomly placed stars
 for (let i = 0; i < 1500; i++) {
@@ -126,3 +147,44 @@ function animate() {
   renderer.render(scene, camera);
 }
 animate();
+
+
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'f' || event.key === 'F') {
+    toggleFullscreen();
+  }
+});
+
+function toggleFullscreen() {
+  if (document.fullscreenElement) {
+    exitFullscreen();
+  } else {
+    enterFullscreen();
+  }
+}
+
+function enterFullscreen() {
+  const element = document.documentElement;
+  if (element.requestFullscreen) {
+    element.requestFullscreen();
+  } else if (element.mozRequestFullScreen) {
+    element.mozRequestFullScreen();
+  } else if (element.webkitRequestFullscreen) {
+    element.webkitRequestFullscreen();
+  } else if (element.msRequestFullscreen) {
+    element.msRequestFullscreen();
+  }
+}
+
+function exitFullscreen() {
+  if (document.exitFullscreen) {
+    document.exitFullscreen();
+  } else if (document.mozCancelFullScreen) {
+    document.mozCancelFullScreen();
+  } else if (document.webkitExitFullscreen) {
+    document.webkitExitFullscreen();
+  } else if (document.msExitFullscreen) {
+    document.msExitFullscreen();
+  }
+}
