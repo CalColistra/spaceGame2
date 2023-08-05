@@ -1,0 +1,22 @@
+THESE ARE HELPFUL COMMANDS:
+
+to list your firebase projects (and see which you are currently using):
+firebase projects:list
+
+for building and running dev:
+npm run build
+npm run dev
+
+to deploy to firebase:
+firebase deploy
+
+
+
+FOR SETTING UP 1st time:
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+npm i -g firebase
+
+
+GIT:
+git pull
+git status
