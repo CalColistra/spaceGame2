@@ -86,6 +86,13 @@ async function checkAccount(email, name){
         email: email,
         });
       }
+      loggedInString = "You have successfully logged in as "+currentUser.userName;
+      loginHeader.innerHTML = loggedInString;
+      loginRow.innerHTML = "<div></div> <div id='continueBtn' class='loginOrContBtn'><a href='#'>CONTINUE</a></div> <div></div>";
+      const continueBtn = document.querySelector("#continueBtn");
+      continueBtn.addEventListener('click',  e => {
+        loginDiv.style.display = "none";
+      });
 }
 
 //-------------------------------------------------------------------------------------------------------
