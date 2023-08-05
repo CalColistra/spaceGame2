@@ -140,6 +140,9 @@ function createInstance() {
 }
 
 //-------------------------------------------------------------------------------------------------------
+var currentUserX = 0;
+var currentUserY = 0;
+var currentUserZ = 0;
 //the following code is all threeJs set up:
 // Create a scene, camera, and renderer
 const scene = new THREE.Scene();
@@ -224,24 +227,28 @@ document.addEventListener('keyup', (event) => {
 // Handle user input for spaceship movement
 function handleSpaceshipMovement() {
   if (keyboard['KeyW']) {
+    currentUserZ -= 0.1;
     currentSpaceship.position.z -= 0.1;
   }
   if (keyboard['KeyA']) {
+    currentUserX -= 0.1;
     currentSpaceship.position.x -= 0.1;
   }
   if (keyboard['KeyS']) {
+    currentUserZ += 0.1;
     currentSpaceship.position.z += 0.1;
   }
   if (keyboard['KeyD']) {
+    currentUserX += 0.1;
     currentSpaceship.position.x += 0.1;
   }
   if (keyboard['KeyI']) {
+    currentUserY += 0.1;
     currentSpaceship.position.y += 0.1;
-    camera.position.y += 0.1;
   }
   if (keyboard['KeyJ']) {
+    currentUserY -= 0.1;
     currentSpaceship.position.y -= 0.1;
-    camera.position.y -= 0.1;
   }
 
   // Move the camera to follow the spaceship
