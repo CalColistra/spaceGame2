@@ -10,7 +10,8 @@ const firebaseConfig = {
   projectId: "spacegame2",
   storageBucket: "spacegame2.appspot.com",
   messagingSenderId: "513671448778",
-  appId: "1:513671448778:web:792628f6f526016a3acc33"
+  appId: "1:513671448778:web:792628f6f526016a3acc33",
+  databaseURL:"https://spacegame2-default-rtdb.firebaseio.com/" 
 };
 
   // Initialize Firebase

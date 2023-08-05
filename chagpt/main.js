@@ -2,17 +2,22 @@
 import { app as firebase } from './javaScript/firebase-config'
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth'
 import { getFirestore, setDoc, doc, getDoc, getDocs, addDoc, updateDoc, collection, query, where, arrayUnion, deleteDoc, orderBy, limit } from 'firebase/firestore'
+import { getDatabase,ref, set ,onDisconnect} from "firebase/database";
 import { async } from '@firebase/util';
 // Import the necessary Three.js modules
 import * as THREE from 'three';
 
 
+
 //handle login/logout:
-const auth = getAuth(firebase)
-const googleAuthProvider = new GoogleAuthProvider()
+const auth = getAuth(firebase);
+const googleAuthProvider = new GoogleAuthProvider();
 
 //setup cloud Firestore db:
-const db = getFirestore(firebase)
+const db = getFirestore(firebase);
+
+// Initialize Realtime Database and get a reference to the service:
+const realTimeDb = getDatabase();
 
 signOut(auth).then(() => {
   console.log('logged out');
@@ -21,9 +26,6 @@ signOut(auth).then(() => {
 //var signedIn if user not signed in with google then = false
 var signedIn = false;
 //const db = getFirestore(firebase)
-
-
-
 
 const loginDiv = document.querySelector("#login");
 var loginString = "<div id = 'loginHeader'>Please login with google to continue</div>";
@@ -42,28 +44,51 @@ function setUpLoginListeners () {
 }
 
 var currentUser;
+var userId ='';
+var playerRef = '';
 onAuthStateChanged(auth, user => {
   if(user){
-      checkAccount(user.email, user.displayName);
-      signedIn = true;
+    checkAccount(user.email, user.displayName);
+    // Fetch the current user's ID from Firebase Authentication.
+    var uid = auth.currentUser.uid;
+    // Create a reference to this user's specific status node.
+    // This is where we will store data about being online/offline.
+    var playerRef = ref(realTimeDb,'/activeUsers/' + uid);
+    var uniqueEmail = convertEmailToId(user.email);
+    set(playerRef,{
+      userName:user.displayName,
+      email:user.email,
+      playerId:uniqueEmail
+    });
+    onDisconnect(playerRef).remove(playerRef);
+    
   }
   else{
+      userId = null;
       currentUser = null;
       signedIn = false;
   }
 });
 
+function convertEmailToId(anEmail) {
+  var uniqueEmail = anEmail.replace("@","AT");
+  uniqueEmail = uniqueEmail.replace(".","DOT");
+  return uniqueEmail;
+}
 //function that checks if it is a returning user or a first time log in
 // if first time log in then create new doc in 'users' collection
 // if returning user then grab their usrname from exsisting doc in users collection:
 async function checkAccount(email, name){
-  const userRef = doc(db, "users", email);
+  var uniqueEmail = convertEmailToId(email);
+  const userRef = doc(db, "users", uniqueEmail);
   const docSnap = await getDoc(userRef);
   var loggedInString;
   if (docSnap.exists()) {
+    signedIn = true;
     console.log("Returning User:", docSnap.data());
     currentUser = {
       userName: docSnap.data().userName,
+      playerId: docSnap.data().playerId,
       email: email
     }
     loggedInString = "You have successfully logged in as "+currentUser.userName;
@@ -72,27 +97,46 @@ async function checkAccount(email, name){
     const continueBtn = document.querySelector("#continueBtn");
     continueBtn.addEventListener('click',  e => {
       loginDiv.style.display = "none";
+      createInstance();
     });
   } 
   else {
+      signedIn = true;
       // doc.data() will be undefined in this case
       console.log("New user!");
+    var uniqueEmail = convertEmailToId(email);
       currentUser = {
         userName: name,
-        email: email
+        email: email,
+        playerId: uniqueEmail
       }
-      await setDoc(doc(db, "users", email), {
+      await setDoc(doc(db, "users", uniqueEmail), {
         userName: currentUser.userName,
         email: email,
-        });
-      }
+        playerId: uniqueEmail
+      });
       loggedInString = "You have successfully logged in as "+currentUser.userName;
       loginHeader.innerHTML = loggedInString;
       loginRow.innerHTML = "<div></div> <div id='continueBtn' class='loginOrContBtn'><a href='#'>CONTINUE</a></div> <div></div>";
       const continueBtn = document.querySelector("#continueBtn");
       continueBtn.addEventListener('click',  e => {
         loginDiv.style.display = "none";
+        createInstance();
       });
+  }     
+}
+
+function createInstance() {
+  /*
+  set(playerRef, {
+    userName:currentUser.userName,
+    email:currentUser.email,
+    playerId:currentUser.playerId
+  });
+  playerRef.onDisconnect().remove();
+*/
+  
+  
 }
 
 //-------------------------------------------------------------------------------------------------------
