@@ -1,8 +1,8 @@
 //import firebase jawns and three js jawns:
 import { app as firebase } from './javaScript/firebase-config'
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth'
-import { getFirestore, setDoc, doc, getDoc, getDocs, addDoc, updateDoc, collection, query, where, arrayUnion, deleteDoc, orderBy, limit } from 'firebase/firestore'
-import { getDatabase,ref, set ,onDisconnect} from "firebase/database";
+import { getFirestore, setDoc, doc, getDoc, getDocs, addDoc, updateDoc, collection, query, where, arrayUnion, deleteDoc, orderBy, limit,onSnapshot } from 'firebase/firestore'
+import { getDatabase,ref, set ,onDisconnect, get, update,onValue } from "firebase/database";
 import { async } from '@firebase/util';
 // Import the necessary Three.js modules
 import * as THREE from 'three';
@@ -28,12 +28,14 @@ var signedIn = false;
 //const db = getFirestore(firebase)
 
 const loginDiv = document.querySelector("#login");
-var loginString = "<div id = 'loginHeader'>Please login with google to continue</div>";
-loginString += "<div id='loginRow'><div></div><div id='loginBtn' class='loginOrContBtn'><a href='#'>LOGIN</a></div><div></div></div>";
+var loginString = "<div id = 'loginHeader'>Please login with Google to continue</div>";
+loginString += "</br><div id='loginRow'><div></div><div id='loginBtn' class='loginOrContBtn'><a href='#'>LOGIN</a></div><div></div></div></br>";
 loginDiv.innerHTML = loginString;
 
 const loginHeader = document.querySelector("#loginHeader");
 const loginRow  = document.querySelector("#loginRow");
+const join =  document.querySelector("#join");
+var allPlayersRef;
 
 setUpLoginListeners();
 function setUpLoginListeners () {
@@ -46,22 +48,26 @@ function setUpLoginListeners () {
 var currentUser;
 var userId ='';
 var playerRef = '';
+var uid = '';
 onAuthStateChanged(auth, user => {
   if(user){
     checkAccount(user.email, user.displayName);
     // Fetch the current user's ID from Firebase Authentication.
-    var uid = auth.currentUser.uid;
+    uid = auth.currentUser.uid;
     // Create a reference to this user's specific status node.
     // This is where we will store data about being online/offline.
-    var playerRef = ref(realTimeDb,'/activeUsers/' + uid);
+    playerRef = ref(realTimeDb,'/activeUsers/' + uid);
     var uniqueEmail = convertEmailToId(user.email);
     set(playerRef,{
       userName:user.displayName,
       email:user.email,
-      playerId:uniqueEmail
+      playerId:uniqueEmail,
+      x: 0,
+      y: 0,
+      z: 0,
+      spaceShipId:1
     });
     onDisconnect(playerRef).remove(playerRef);
-    
   }
   else{
       userId = null;
@@ -89,7 +95,11 @@ async function checkAccount(email, name){
     currentUser = {
       userName: docSnap.data().userName,
       playerId: docSnap.data().playerId,
-      email: email
+      email: email,
+      x:0,
+      y:0,
+      z:0,
+      listeningTo: docSnap.data().listeningTo
     }
     loggedInString = "You have successfully logged in as "+currentUser.userName;
     loginHeader.innerHTML = loggedInString;
@@ -108,12 +118,16 @@ async function checkAccount(email, name){
       currentUser = {
         userName: name,
         email: email,
-        playerId: uniqueEmail
+        playerId: uniqueEmail,
+        x:0,
+        y:0,
+        z:0
       }
       await setDoc(doc(db, "users", uniqueEmail), {
         userName: currentUser.userName,
         email: email,
-        playerId: uniqueEmail
+        playerId: uniqueEmail,
+        listeningTo: []
       });
       loggedInString = "You have successfully logged in as "+currentUser.userName;
       loginHeader.innerHTML = loggedInString;
@@ -124,25 +138,180 @@ async function checkAccount(email, name){
         createInstance();
       });
   }     
-}
-
-function createInstance() {
-  /*
-  set(playerRef, {
-    userName:currentUser.userName,
-    email:currentUser.email,
-    playerId:currentUser.playerId
+  const listenerToCloudFirestore = onSnapshot(doc(db, "users", currentUser.playerId), (doc) => {
+    console.log("Current data: ", doc.data());
+    for (let i = 0; i <doc.data().listeningTo.length;i++) {
+      if (!(currentUser.listeningTo.includes(doc.data().listeningTo[i]))) {
+        currentUser.listeningTo.push(doc.data().listeningTo[i]);
+        startListening(doc.data().listeningTo[i]);
+      }
+    }
+    
   });
-  playerRef.onDisconnect().remove();
-*/
-  
-  
 }
 
+async function startListening(uniqueId) {
+  onValue(uniqueId,(snapshot) => {
+    //console.log(snapshot.exists());
+    if (snapshot.exists() == true) {
+      listeningToPlayers[uniqueId] ="";
+      listeningToPlayers[hostUserId].spaceShip = createSpaceship(snapshot.val().spaceShipId);
+      scene.add(listeningToPlayers[hostUserId].spaceShip);
+      updateMultiplayer(uniqueId,snapshot.val());
+    }
+    else {
+      alert("unable to join that lad");
+    }
+  });
+}
+
+var menuState = false;
+async function createInstance() {
+  // Add event listener on keypress
+  document.addEventListener('keypress', (event) => {
+    var name = event.key;
+    var code = event.code;
+    if (code == "Backslash") {
+      if (menuState == false) {
+        showActivePlayers();
+      }
+      else if (menuState == true) {
+        hideMenu();
+      }
+    }
+  }, false);
+}
+async function hideMenu () {
+  join.style.display = "none";
+  menuState = false;
+}
+var allActivePlayers;
+async function showActivePlayers () {
+  join.style.display = "grid";
+  allPlayersRef = ref(realTimeDb,"activeUsers");
+  await get(allPlayersRef).then((snapshot) => {
+    if (snapshot.exists()) {
+      //console.log(snapshot.val());
+      allActivePlayers = snapshot.val();
+      console.log(allActivePlayers);
+      var allIds = [];
+      var joinActiveUsersTableString = "<div id='joinTableContainer'>";
+      Object.keys(allActivePlayers).forEach(function(key){
+        console.log(key);
+        if (key != uid) {
+          joinActiveUsersTableString += "<div id='player"+key+"'>"+allActivePlayers[key].userName+"</div>";
+          joinActiveUsersTableString += "<div> </div>";
+          joinActiveUsersTableString += "<a href='#' class='joinBtn' id='join"+key+"'>JOIN</a>";
+          allIds.push("#join"+key);
+        }
+      });
+      joinActiveUsersTableString += "</div>";
+      join.innerHTML = joinActiveUsersTableString;
+      menuState = true;
+      setupJoinListener(allIds);
+    } else {
+      console.log("No data available");
+    }
+  }).catch((error) => {
+    console.error(error);
+  });
+}
+
+async function setupJoinListener(ids) {
+  //console.log(ids);
+  for (let i = 0; i <ids.length;i++) {
+    console.log(ids[i].substring(5));
+    var currentJoin = document.querySelector(ids[i]);
+    currentJoin.addEventListener('click',  e => {
+      joinInstance(ids[i].substring(5));
+      //console.log("join");
+    });
+  }
+}
+
+
+var listeningToPlayers = [];
+
+async function joinInstance(hostUserId) {
+  var hostUser = ref(realTimeDb,'/activeUsers/' + hostUserId);
+  var hostShipQuery;
+  await get(hostUser).then((snapshot) => {
+    if (snapshot.exists()) {
+      hideMenu();
+      //console.log(snapshot.val());
+      hostShipQuery = snapshot.val();
+    }
+  });
+  var hostSpaceship = createSpaceship(hostShipQuery.spaceShipId);
+  var playerObject = {
+    userName: hostShipQuery.userName,
+    x: hostShipQuery.x,
+    y: hostShipQuery.y,
+    z: hostShipQuery.z,
+    spaceShip: hostSpaceship
+  };
+  listeningToPlayers[hostUserId] = playerObject;
+  scene.add(listeningToPlayers[hostUserId].spaceShip); // Add the new spaceship mesh to the scene
+  listeningToPlayers[hostUserId].spaceShip.position.y = allActivePlayers[hostUserId].y;
+  listeningToPlayers[hostUserId].spaceShip.x = allActivePlayers[hostUserId].x;
+  listeningToPlayers[hostUserId].spaceShip.z = allActivePlayers[hostUserId].z;
+  await onValue(hostUser,(snapshot) => {
+    //console.log(snapshot.exists());
+    if (snapshot.exists() == true) {
+      var data = snapshot.val();
+      console.log(data);
+      console.log(hostUserId+"host is moving");
+      updateMultiplayer(hostUserId,data);
+    }
+    else {
+      alert("unable to join that lad");
+    }
+  });
+  var hostCloudRef = doc(db, "users", allActivePlayers[hostUserId].playerId);
+  var hostDoc = await getDoc(hostCloudRef);
+  var hostIsLisentingArray;
+  if (hostDoc.exists()) {
+    hostIsLisentingArray = hostDoc.data().listeningTo;
+  } 
+  else {
+    console.log("No such document!");
+  }
+  console.log(hostIsLisentingArray);
+  if (!(hostIsLisentingArray.includes(uid))) {
+    hostIsLisentingArray.push(uid);
+    updateDoc(doc(db, "users",allActivePlayers[hostUserId].playerId), {
+      listeningTo: hostIsLisentingArray
+    });
+  }
+  
+}
+async function updateMultiplayer(player,data){
+  /*
+  console.log("db ARRay: ");
+  console.log(data);
+  console.log("local ARRay: ");
+  console.log(listeningToPlayers);
+  */
+    if (data.spaceShipId != listeningToPlayers[player].spaceShipId) {
+      console.log("chaning host spaceship");
+      //console.log(listeningToPlayers[player].spaceShip);
+      listeningToPlayers[player].spaceShipId = data.spaceShipId;
+      scene.remove(listeningToPlayers[player].spaceShip); // Remove the existing spaceship
+      var playersNewShip = createSpaceship(listeningToPlayers[player].spaceShipId);
+      scene.add(playersNewShip); // Add the new spaceship mesh to the scene
+    }
+    listeningToPlayers[player].x = data.x,
+    listeningToPlayers[player].y = data.y,
+    listeningToPlayers[player].z = data.z,
+    listeningToPlayers[player].spaceShip.position.x = data.x;
+    listeningToPlayers[player].spaceShip.position.y = data.y;
+    listeningToPlayers[player].spaceShip.position.z = data.z;
+}
 //-------------------------------------------------------------------------------------------------------
 var currentUserX = 0;
 var currentUserY = 0;
 var currentUserZ = 0;
+var currentUserSpaceShipId = 1;
 //the following code is all threeJs set up:
 // Create a scene, camera, and renderer
 const scene = new THREE.Scene();
@@ -195,9 +364,17 @@ scene.add(currentSpaceship);
 // Event listener for keyboard key presses
 document.addEventListener('keydown', (event) => {
   if (event.key === '1' ||event.key === '2' || event.key === '3') {
+    console.log(currentSpaceship);
     scene.remove(currentSpaceship); // Remove the existing spaceship
 
     const spaceshipType = parseInt(event.key);
+    currentUserSpaceShipId = spaceshipType;
+    update(playerRef,{
+      x: currentUserX,
+      y: currentUserY,
+      z: currentUserZ,
+      spaceShipId: currentUserSpaceShipId
+    });
     currentSpaceship = createSpaceship(spaceshipType);
     scene.add(currentSpaceship); // Add the new spaceship mesh to the scene
     currentSpaceship.position.y = currentUserY;
@@ -232,26 +409,32 @@ function handleSpaceshipMovement() {
   if (keyboard['KeyW']) {
     currentUserZ -= 0.1;
     currentSpaceship.position.z -= 0.1;
+    updateUserPositionInDB();
   }
   if (keyboard['KeyA']) {
     currentUserX -= 0.1;
     currentSpaceship.position.x -= 0.1;
+    updateUserPositionInDB();
   }
   if (keyboard['KeyS']) {
     currentUserZ += 0.1;
     currentSpaceship.position.z += 0.1;
+    updateUserPositionInDB();
   }
   if (keyboard['KeyD']) {
     currentUserX += 0.1;
     currentSpaceship.position.x += 0.1;
+    updateUserPositionInDB();
   }
   if (keyboard['KeyI']) {
     currentUserY += 0.1;
     currentSpaceship.position.y += 0.1;
+    updateUserPositionInDB();
   }
   if (keyboard['KeyJ']) {
     currentUserY -= 0.1;
     currentSpaceship.position.y -= 0.1;
+    updateUserPositionInDB();
   }
 
   // Move the camera to follow the spaceship
@@ -313,6 +496,15 @@ function exitFullscreen() {
   } else if (document.msExitFullscreen) {
     document.msExitFullscreen();
   }
+}
+
+function updateUserPositionInDB(){
+  update(playerRef,{
+    x: currentUserX,
+    y: currentUserY,
+    z: currentUserZ,
+    spaceShipId: currentUserSpaceShipId
+  });
 }
 
 // Animate the scene

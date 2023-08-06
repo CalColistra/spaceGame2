@@ -37,18 +37,45 @@ body {
   grid-template-columns: 100%;
   position: absolute;
   z-index: 10;
-  left: 50%;
-  right: 50%;
-  background-color: aquamarine;
-  color: #646cff;
+  left: 35%;
+  background-color: rgb(183, 255, 231);
+  color: #121cdb;
+  font-weight: bold;
   border-style: solid;
-  width: max-content;
+  width: 30%;
+  text-align: center;
 }
 #loginRow{
   display: grid;
   grid-template-columns: 30% 40% 30%;
 }
 .loginOrContBtn{
+  background-color: whitesmoke;
+  color: green;
+  text-align: center;
+  font-weight: bold;
+  border-style: solid;
+  border-color: #242424;
+  color: #121cdb;
+}
+#join{
+  display: none;
+  grid-template-columns: 100%;
+  grid-template-columns: 100%;
+  position: absolute;
+  z-index: 10;
+  left: 25%;
+  background-color: aquamarine;
+  color: #646cff;
+  border-style: solid;
+  width: 50%;
+}
+#joinTableContainer{
+  display: grid;
+  grid-template-columns: 40% 20% 40%;
+  width: 100%;
+}
+.joinBtn{
   background-color: whitesmoke;
   color: green;
   text-align: center;
