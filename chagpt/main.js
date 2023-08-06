@@ -2,7 +2,7 @@
 import { app as firebase } from './javaScript/firebase-config'
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth'
 import { getFirestore, setDoc, doc, getDoc, getDocs, addDoc, updateDoc, collection, query, where, arrayUnion, deleteDoc, orderBy, limit,onSnapshot } from 'firebase/firestore'
-import { getDatabase,ref, set ,onDisconnect, get, update,onValue } from "firebase/database";
+import { getDatabase,ref, set ,onDisconnect, get, update,onValue,off } from "firebase/database";
 import { async } from '@firebase/util';
 // Import the necessary Three.js modules
 import * as THREE from 'three';
@@ -137,30 +137,55 @@ async function checkAccount(email, name){
         loginDiv.style.display = "none";
         createInstance();
       });
-  }     
+  }
+  updateDoc(doc(db, "users", currentUser.playerId),{
+    listeningTo:[]
+  });
   const listenerToCloudFirestore = onSnapshot(doc(db, "users", currentUser.playerId), (doc) => {
-    console.log("Current data: ", doc.data());
-    for (let i = 0; i <doc.data().listeningTo.length;i++) {
-      if (!(currentUser.listeningTo.includes(doc.data().listeningTo[i]))) {
-        currentUser.listeningTo.push(doc.data().listeningTo[i]);
-        startListening(doc.data().listeningTo[i]);
+    console.log(doc.data().listeningTo);
+      for (let i = 0; i <doc.data().listeningTo.length;i++) {
+        if (!(listeningToPlayers[doc.data().listeningTo[i]])) {
+          console.log("someone joined your instance");
+          startListening(doc.data().listeningTo[i]);
+        }
       }
-    }
+    
     
   });
 }
 
 async function startListening(uniqueId) {
-  onValue(uniqueId,(snapshot) => {
+  var playerRef = ref(realTimeDb,'/activeUsers/' + uniqueId);
+  var playerQuery;
+  await get(playerRef).then((snapshot) => {
+    if (snapshot.exists()) {
+      //console.log(snapshot.val());
+      playerQuery = snapshot.val();
+    }
+  });
+  console.log("db QUERY:");
+  console.log(playerQuery);
+  listeningToPlayers[uniqueId] = {
+    spaceShip:  createSpaceship(playerQuery.spaceShipId),
+    x:playerQuery.x,
+    y:playerQuery.y,
+    z:playerQuery.z,
+    spaceShipId: playerQuery.spaceShipId
+  }
+  scene.add(listeningToPlayers[uniqueId].spaceShip);
+  listeningToPlayers[uniqueId].spaceShip.position.x = playerQuery.x;
+  listeningToPlayers[uniqueId].spaceShip.position.y = playerQuery.y;
+  listeningToPlayers[uniqueId].spaceShip.position.z = playerQuery.z
+  onValue(playerRef,(snapshot) => {
     //console.log(snapshot.exists());
     if (snapshot.exists() == true) {
-      listeningToPlayers[uniqueId] ="";
-      listeningToPlayers[hostUserId].spaceShip = createSpaceship(snapshot.val().spaceShipId);
-      scene.add(listeningToPlayers[hostUserId].spaceShip);
       updateMultiplayer(uniqueId,snapshot.val());
     }
     else {
-      alert("unable to join that lad");
+      scene.remove(listeningToPlayers[uniqueId].spaceShip);
+      off(playerRef);
+      delete listeningToPlayers.uniqueId;
+      alert("host has left");
     }
   });
 }
@@ -242,31 +267,20 @@ async function joinInstance(hostUserId) {
       hostShipQuery = snapshot.val();
     }
   });
-  var hostSpaceship = createSpaceship(hostShipQuery.spaceShipId);
+  //var hostSpaceship = createSpaceship(hostShipQuery.spaceShipId);
   var playerObject = {
     userName: hostShipQuery.userName,
     x: hostShipQuery.x,
     y: hostShipQuery.y,
     z: hostShipQuery.z,
-    spaceShip: hostSpaceship
   };
   listeningToPlayers[hostUserId] = playerObject;
+  listeningToPlayers[hostUserId].spaceShip = createSpaceship(hostShipQuery.spaceShipId);
   scene.add(listeningToPlayers[hostUserId].spaceShip); // Add the new spaceship mesh to the scene
   listeningToPlayers[hostUserId].spaceShip.position.y = allActivePlayers[hostUserId].y;
-  listeningToPlayers[hostUserId].spaceShip.x = allActivePlayers[hostUserId].x;
-  listeningToPlayers[hostUserId].spaceShip.z = allActivePlayers[hostUserId].z;
-  await onValue(hostUser,(snapshot) => {
-    //console.log(snapshot.exists());
-    if (snapshot.exists() == true) {
-      var data = snapshot.val();
-      console.log(data);
-      console.log(hostUserId+"host is moving");
-      updateMultiplayer(hostUserId,data);
-    }
-    else {
-      alert("unable to join that lad");
-    }
-  });
+  listeningToPlayers[hostUserId].spaceShip.position.x = allActivePlayers[hostUserId].x;
+  listeningToPlayers[hostUserId].spaceShip.position.z = allActivePlayers[hostUserId].z;
+
   var hostCloudRef = doc(db, "users", allActivePlayers[hostUserId].playerId);
   var hostDoc = await getDoc(hostCloudRef);
   var hostIsLisentingArray;
@@ -283,6 +297,28 @@ async function joinInstance(hostUserId) {
       listeningTo: hostIsLisentingArray
     });
   }
+
+  await onValue(hostUser,(snapshot) => {
+    //console.log(snapshot.exists());
+    if (snapshot.exists() == true) {
+      var data = snapshot.val();
+      console.log(data);
+      console.log(hostUserId+"host is moving");
+      updateMultiplayer(hostUserId,data);
+    }
+    else {
+      updateDoc(doc(db, "users",allActivePlayers[hostUserId].playerId), {
+        listeningTo: []
+      });
+      scene.remove(listeningToPlayers[hostUserId].spaceShip);
+      updateDoc(doc(db, "users", currentUser.playerId),{
+        listeningTo:[]
+      });
+      off(hostUser);
+      delete listeningToPlayers.hostUserId;
+      alert("Your lad left your session");
+    }
+  });
   
 }
 async function updateMultiplayer(player,data){
@@ -297,8 +333,8 @@ async function updateMultiplayer(player,data){
       //console.log(listeningToPlayers[player].spaceShip);
       listeningToPlayers[player].spaceShipId = data.spaceShipId;
       scene.remove(listeningToPlayers[player].spaceShip); // Remove the existing spaceship
-      var playersNewShip = createSpaceship(listeningToPlayers[player].spaceShipId);
-      scene.add(playersNewShip); // Add the new spaceship mesh to the scene
+      listeningToPlayers[player].spaceShip = createSpaceship(listeningToPlayers[player].spaceShipId);
+      scene.add(listeningToPlayers[player].spaceShip); // Add the new spaceship mesh to the scene
     }
     listeningToPlayers[player].x = data.x,
     listeningToPlayers[player].y = data.y,
@@ -457,6 +493,9 @@ function handleSpaceshipHovering() {
     0
   );
   currentSpaceship.position.add(hoverPositionOffset);
+  Object.keys(listeningToPlayers).forEach(function(key){
+    listeningToPlayers[key].spaceShip.position.add(hoverPositionOffset);
+  });
 }
 //set up f for full screen:
 document.addEventListener('keydown', event => {
