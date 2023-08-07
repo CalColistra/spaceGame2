@@ -419,6 +419,109 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
+// Function to shoot a cube from the spaceship
+function shootCube() {
+  const cubeGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.8);
+  const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); // Green color
+  const cubeMesh = new THREE.Mesh(cubeGeometry, cubeMaterial);
+
+  // Position the cube at the tip of the spaceship
+  const spaceshipDirection = new THREE.Vector3();
+  currentSpaceship.getWorldDirection(spaceshipDirection);
+  const offset = spaceshipDirection.clone().multiplyScalar(-0.5); // Adjust the offset as needed
+  const cubePosition = currentSpaceship.position.clone().add(offset);
+  cubeMesh.position.copy(cubePosition);
+
+  // Calculate and set the initial velocity
+  const initialVelocity = spaceshipDirection.clone().multiplyScalar(-100); // Adjust the speed as needed
+  cubeMesh.userData.velocity = initialVelocity;
+
+  // Set a lifetime for the cube (laser) to be removed after 5 seconds
+  cubeMesh.userData.lifetime = 5.0;
+
+  // Add the cube to the scene and the array of active cubes
+  scene.add(cubeMesh);
+  activeCubes.push(cubeMesh);
+
+  // Set a timeout to remove the cube after 5 seconds
+  setTimeout(() => {
+    scene.remove(cubeMesh);
+    activeCubes.splice(activeCubes.indexOf(cubeMesh), 1);
+  }, 5000);
+}
+
+// Event listener to shoot a cube when a key is pressed (e.g., spacebar)
+document.addEventListener('keydown', (event) => {
+  if (event.code === 'Space') {
+    shootCube();
+  }
+});
+
+// Function to update the laser position and check for removal
+function updateLasers(deltaTime) {
+  for (let i = activeCubes.length - 1; i >= 0; i--) {
+    const cubeMesh = activeCubes[i];
+    
+    // Update position based on velocity and time
+    cubeMesh.position.add(cubeMesh.userData.velocity.clone().multiplyScalar(deltaTime));
+    
+    // Check if the laser has exceeded its lifetime
+    cubeMesh.userData.lifetime -= deltaTime;
+    if (cubeMesh.userData.lifetime <= 0) {
+      scene.remove(cubeMesh);
+      activeCubes.splice(i, 1);
+    }
+  }
+}
+
+// Function to create an asteroid
+function createAsteroid() {
+  const asteroidGeometry = new THREE.BoxGeometry(1, 1, 1);
+  const asteroidMaterial = new THREE.MeshBasicMaterial({ color: 0x8B4513 }); // Brown color
+  const asteroidMesh = new THREE.Mesh(asteroidGeometry, asteroidMaterial);
+
+  // Generate random offsets within the specified range
+  const offsetX = Math.random() * 40 - 20; // Adjust the range as needed
+  const offsetY = Math.random() * 40 - 20; // Adjust the range as needed
+  const offsetZ = Math.random() * 40 - 20; // Adjust the range as needed
+
+  // Apply the offsets to the ship's position
+  asteroidMesh.position.copy(currentSpaceship.position).add(new THREE.Vector3(offsetX, offsetY, offsetZ));
+
+  scene.add(asteroidMesh);
+  return asteroidMesh;
+}
+
+
+// Function to handle collisions between lasers and asteroids
+function handleCollisions() {
+  for (let i = activeCubes.length - 1; i >= 0; i--) {
+    const cubeMesh = activeCubes[i];
+
+    // Check for collision with each asteroid
+    for (let j = asteroids.length - 1; j >= 0; j--) {
+      const asteroidMesh = asteroids[j];
+
+      // Calculate the distance between the laser and asteroid centers
+      const distance = cubeMesh.position.distanceTo(asteroidMesh.position);
+
+      // Check if the distance is less than a threshold (collision occurred)
+      if (distance < 1.5) { // Adjust the threshold as needed
+        // Remove the laser and asteroid
+        scene.remove(cubeMesh);
+        activeCubes.splice(i, 1);
+        scene.remove(asteroidMesh);
+        asteroids.splice(j, 1);
+
+        // Create a new asteroid to replace the one that was destroyed
+        asteroids.push(createAsteroid());
+      }
+    }
+  }
+}
+
+
+
 // Create a spaceship mesh
 //const spaceshipGeometry = new THREE.BoxGeometry(1, 5, 1);
 //const spaceshipMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
@@ -550,10 +653,36 @@ function updateUserPositionInDB(){
 function animate() {
   requestAnimationFrame(animate);
 
+  // Calculate the time elapsed since the last frame
+  const currentTime = performance.now();
+  const deltaTime = (currentTime - previousTime) * 0.001; // Convert to seconds
+
   // Update the spaceship position based on user input
   handleSpaceshipMovement();
   handleSpaceshipHovering();
+
+  // Update laser positions and check for removal
+  updateLasers(deltaTime);
+
+  //Calls the handlecollisions that will cause the lasers to interact with objects
+  handleCollisions();
+
   // Render the scene
   renderer.render(scene, camera);
+
+  previousTime = currentTime;
+
+  
 }
+
+// Initialize variables
+const activeCubes = [];
+const asteroids = []; // Array to store asteroid meshes
+let previousTime = performance.now();
+
+// Create initial asteroids and add to the array
+for (let i = 0; i < 5; i++) {
+  asteroids.push(createAsteroid());
+}
+
 animate();
