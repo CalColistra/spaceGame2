@@ -546,34 +546,46 @@ document.addEventListener('keyup', (event) => {
 // Handle user input for spaceship movement
 function handleSpaceshipMovement() {
   if (keyboard['KeyW']) {
-    currentUserZ -= 0.1;
-    currentSpaceship.position.z -= 0.1;
+    // Move the spaceship forward based on its orientation
+    const spaceshipDirection = new THREE.Vector3();
+    currentSpaceship.getWorldDirection(spaceshipDirection);
+  
+    const velocity = spaceshipDirection.clone().multiplyScalar(-0.1); // Adjust the speed as needed
+    currentSpaceship.position.add(velocity);
+  
+    // Update user position in the database
     updateUserPositionInDB();
   }
   if (keyboard['KeyA']) {
-    currentUserX -= 0.1;
-    currentSpaceship.position.x -= 0.1;
-    updateUserPositionInDB();
+    // Rotate the spaceship and camera to the left around the Y-axis
+    currentSpaceship.rotateY(0.05); // Adjust the rotation angle as needed
+    camera.rotateY(0.05); // Adjust the rotation angle as needed
   }
   if (keyboard['KeyS']) {
-    currentUserZ += 0.1;
-    currentSpaceship.position.z += 0.1;
+    // Move the spaceship forward based on its orientation
+    const spaceshipDirection = new THREE.Vector3();
+    currentSpaceship.getWorldDirection(spaceshipDirection);
+  
+    const velocity = spaceshipDirection.clone().multiplyScalar(0.1); // Adjust the speed as needed
+    currentSpaceship.position.add(velocity);
+  
+    // Update user position in the database
     updateUserPositionInDB();
   }
   if (keyboard['KeyD']) {
-    currentUserX += 0.1;
-    currentSpaceship.position.x += 0.1;
-    updateUserPositionInDB();
+    // Rotate the spaceship and camera to the right around the Y-axis
+    currentSpaceship.rotateY(-0.05); // Adjust the rotation angle as needed
+    camera.rotateY(-0.05); // Adjust the rotation angle as needed
   }
   if (keyboard['KeyI']) {
-    currentUserY += 0.1;
-    currentSpaceship.position.y += 0.1;
-    updateUserPositionInDB();
+    // Rotate the spaceship and camera upwards (around the X-axis)
+    currentSpaceship.rotateX(0.05); // Adjust the rotation angle as needed
+    camera.rotateX(0.05); // Adjust the rotation angle as needed
   }
   if (keyboard['KeyJ']) {
-    currentUserY -= 0.1;
-    currentSpaceship.position.y -= 0.1;
-    updateUserPositionInDB();
+    // Rotate the spaceship and camera downwards (around the X-axis)
+    currentSpaceship.rotateX(-0.05); // Adjust the rotation angle as needed
+    camera.rotateX(-0.05); // Adjust the rotation angle as needed
   }
 
   // Move the camera to follow the spaceship
