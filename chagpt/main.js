@@ -552,7 +552,7 @@ function handleSpaceshipMovement() {
   
     const velocity = spaceshipDirection.clone().multiplyScalar(-0.1); // Adjust the speed as needed
     currentSpaceship.position.add(velocity);
-  
+    
     // Update user position in the database
     updateUserPositionInDB();
   }
@@ -560,6 +560,8 @@ function handleSpaceshipMovement() {
     // Rotate the spaceship and camera to the left around the Y-axis
     currentSpaceship.rotateY(0.01); // Adjust the rotation angle as needed
     camera.rotateY(0.01); // Adjust the rotation angle as needed
+    // Update user position in the database
+    updateUserPositionInDB();
   }
   if (keyboard['KeyS']) {
     // Move the spaceship forward based on its orientation
@@ -576,16 +578,22 @@ function handleSpaceshipMovement() {
     // Rotate the spaceship and camera to the right around the Y-axis
     currentSpaceship.rotateY(-0.01); // Adjust the rotation angle as needed
     camera.rotateY(-0.01); // Adjust the rotation angle as needed
+    // Update user position in the database
+    updateUserPositionInDB();
   }
   if (keyboard['KeyI']) {
     // Rotate the spaceship and camera upwards (around the X-axis)
     currentSpaceship.rotateX(0.01); // Adjust the rotation angle as needed
     camera.rotateX(0.01); // Adjust the rotation angle as needed
+    // Update user position in the database
+    updateUserPositionInDB();
   }
   if (keyboard['KeyJ']) {
     // Rotate the spaceship and camera downwards (around the X-axis)
     currentSpaceship.rotateX(-0.01); // Adjust the rotation angle as needed
     camera.rotateX(-0.01); // Adjust the rotation angle as needed
+    // Update user position in the database
+    updateUserPositionInDB();
   }
 
   // Move the camera to follow the spaceship
@@ -654,9 +662,9 @@ function exitFullscreen() {
 
 function updateUserPositionInDB(){
   update(playerRef,{
-    x: currentUserX,
-    y: currentUserY,
-    z: currentUserZ,
+    x: currentSpaceship.position.x,
+    y: currentSpaceship.position.y,
+    z: currentSpaceship.position.z,
     spaceShipId: currentUserSpaceShipId
   });
 }
