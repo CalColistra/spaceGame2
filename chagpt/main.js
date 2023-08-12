@@ -558,8 +558,8 @@ function handleSpaceshipMovement() {
   }
   if (keyboard['KeyA']) {
     // Rotate the spaceship and camera to the left around the Y-axis
-    currentSpaceship.rotateY(0.05); // Adjust the rotation angle as needed
-    camera.rotateY(0.05); // Adjust the rotation angle as needed
+    currentSpaceship.rotateY(0.01); // Adjust the rotation angle as needed
+    camera.rotateY(0.01); // Adjust the rotation angle as needed
   }
   if (keyboard['KeyS']) {
     // Move the spaceship forward based on its orientation
@@ -574,18 +574,18 @@ function handleSpaceshipMovement() {
   }
   if (keyboard['KeyD']) {
     // Rotate the spaceship and camera to the right around the Y-axis
-    currentSpaceship.rotateY(-0.05); // Adjust the rotation angle as needed
-    camera.rotateY(-0.05); // Adjust the rotation angle as needed
+    currentSpaceship.rotateY(-0.01); // Adjust the rotation angle as needed
+    camera.rotateY(-0.01); // Adjust the rotation angle as needed
   }
   if (keyboard['KeyI']) {
     // Rotate the spaceship and camera upwards (around the X-axis)
-    currentSpaceship.rotateX(0.05); // Adjust the rotation angle as needed
-    camera.rotateX(0.05); // Adjust the rotation angle as needed
+    currentSpaceship.rotateX(0.01); // Adjust the rotation angle as needed
+    camera.rotateX(0.01); // Adjust the rotation angle as needed
   }
   if (keyboard['KeyJ']) {
     // Rotate the spaceship and camera downwards (around the X-axis)
-    currentSpaceship.rotateX(-0.05); // Adjust the rotation angle as needed
-    camera.rotateX(-0.05); // Adjust the rotation angle as needed
+    currentSpaceship.rotateX(-0.01); // Adjust the rotation angle as needed
+    camera.rotateX(-0.01); // Adjust the rotation angle as needed
   }
 
   // Move the camera to follow the spaceship
@@ -672,6 +672,20 @@ function animate() {
   // Update the spaceship position based on user input
   handleSpaceshipMovement();
   handleSpaceshipHovering();
+
+  // Calculate the camera offset based on spaceship rotation
+  const cameraOffset = new THREE.Vector3(0, 2, -5); // Adjust the camera offset as needed
+  const rotationMatrix = new THREE.Matrix4();
+  rotationMatrix.makeRotationFromEuler(currentSpaceship.rotation);
+
+  // Apply a 180-degree rotation around the Y-axis (up axis)
+  rotationMatrix.multiply(new THREE.Matrix4().makeRotationY(Math.PI));
+
+  const cameraOffsetRotated = cameraOffset.clone().applyMatrix4(rotationMatrix);
+
+  // Set the camera position and orientation based on spaceship rotation
+  camera.position.copy(currentSpaceship.position).add(cameraOffsetRotated);
+  camera.lookAt(currentSpaceship.position);
 
   // Update laser positions and check for removal
   updateLasers(deltaTime);
